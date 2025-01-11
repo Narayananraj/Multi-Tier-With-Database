@@ -1,4 +1,16 @@
 ---
+# MySQL Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
 # MySQL Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -26,6 +38,13 @@ spec:
         ports:
         - containerPort: 3306
           name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc
 ---
 # MySQL Service
 apiVersion: v1
@@ -38,7 +57,7 @@ spec:
   selector:
     app: mysql
 ---
-# Java Application Deployment
+# Bank Application Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -65,6 +84,19 @@ spec:
           value: root
         - name: SPRING_DATASOURCE_PASSWORD
           value: Test@123
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
 ---
 # Bank Application Service
 apiVersion: v1
